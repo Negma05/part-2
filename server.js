@@ -1,7 +1,8 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const connectDB = require('./config/db');
+const mongoose = require('mongoose');
+const db = require('./config/db');
 const Message = require('./models/Message');
 
 const app = express();
@@ -9,7 +10,9 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 // Connect to MongoDB
-connectDB();
+mongoose.connect(db.url, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('Mingleo: Connected to MongoDB'))
+  .catch(err => console.error('Mingleo: MongoDB connection error:', err));
 
 // Middleware
 app.use(express.json());

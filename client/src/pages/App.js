@@ -1,59 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import axios from 'axios';
 import Login from './components/Login';
 import Register from './components/Register';
-import Chat from './pages/Chat';
-import CreateChatRoom from './components/CreateChatRoom';
-import ChatRoomList from './components/ChatRoomList';
+import ChatWindow from './components/ChatWindow';
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [chatRooms, setChatRooms] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
 
-  // Check if the user is logged in (e.g., by checking localStorage for a token)
+  // Check if the user is logged in
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       setIsLoggedIn(true);
+      // Fetch current user details
+      const fetchCurrentUser = async () => {
+        try {
+          const response = await axios.get('http://localhost:5000/auth/me', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setCurrentUser(response.data);
+        } catch (err) {
+          console.error('Error fetching current user:', err);
+        }
+      };
+      fetchCurrentUser();
     }
   }, []);
-
-  // Handle logout
-  const handleLogout = () => {
-    localStorage.removeItem('token'); // Remove the token from localStorage
-    setIsLoggedIn(false); // Update the login state
-  };
-
-  // Handle chat room creation
-  const handleChatRoomCreated = (newChatRoom) => {
-    setChatRooms((prevChatRooms) => [...prevChatRooms, newChatRoom]);
-  };
-
-  // Handle joining a chat room
-  const handleJoinChatRoom = async (chatRoomId) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        `http://localhost:5000/chatrooms/join/${chatRoomId}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      alert('You have joined the chat room!');
-    } catch (err) {
-      console.error('Error joining chat room:', err);
-    }
-  };
 
   return (
     <Router>
       <Routes>
-        {/* Redirect to /chat if the user is already logged in */}
         <Route
           path="/"
           element={isLoggedIn ? <Navigate to="/chat" /> : <Navigate to="/login" />}
         />
-        {/* Login Route */}
         <Route
           path="/login"
           element={
@@ -64,7 +45,6 @@ const App = () => {
             )
           }
         />
-        {/* Register Route */}
         <Route
           path="/register"
           element={
@@ -75,23 +55,16 @@ const App = () => {
             )
           }
         />
-        {/* Chat Route (Protected) */}
         <Route
           path="/chat"
           element={
             isLoggedIn ? (
-              <div>
-                <Chat onLogout={handleLogout} />
-                <CreateChatRoom onChatRoomCreated={handleChatRoomCreated} />
-                <ChatRoomList onJoinChatRoom={handleJoinChatRoom} />
-              </div>
+              <ChatWindow chatRoomId="your-chat-room-id" currentUser={currentUser} />
             ) : (
               <Navigate to="/login" />
             )
           }
         />
-        {/* Fallback Route */}
-        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
   );

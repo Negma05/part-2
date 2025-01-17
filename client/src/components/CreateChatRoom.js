@@ -3,9 +3,21 @@ import axios from 'axios';
 
 const CreateChatRoom = ({ onChatRoomCreated }) => {
   const [name, setName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Client-side validation
+    if (!name.trim()) {
+      setError('Chat room name cannot be empty.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
@@ -16,7 +28,10 @@ const CreateChatRoom = ({ onChatRoomCreated }) => {
       onChatRoomCreated(response.data);
       setName('');
     } catch (err) {
+      setError('Failed to create chat room. Please try again.');
       console.error('Error creating chat room:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -28,8 +43,12 @@ const CreateChatRoom = ({ onChatRoomCreated }) => {
         value={name}
         onChange={(e) => setName(e.target.value)}
         required
+        disabled={loading}
       />
-      <button type="submit">Create Chat Room</button>
+      <button type="submit" disabled={loading}>
+        {loading ? 'Creating...' : 'Create Chat Room'}
+      </button>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
     </form>
   );
 };
