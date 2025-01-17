@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const connectDB = require('./config/db');
-const chatRoomRoutes = require('routes\ChatRoom.js');
+const Message = require('./models/Message');
 
 const app = express();
 const server = http.createServer(app);
@@ -14,23 +14,30 @@ connectDB();
 // Middleware
 app.use(express.json());
 
-// Use chat room routes
-app.use('/chatrooms', chatRoomRoutes);
-
 // Socket.IO connection
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
+  // Join a chat room
+  socket.on('joinRoom', (chatRoomId) => {
+    socket.join(chatRoomId);
+    console.log(`User ${socket.id} joined room ${chatRoomId}`);
+  });
+
   // Listen for chat messages
   socket.on('sendMessage', async (data) => {
-    const { sender, content } = data;
+    const { sender, content, chatRoom } = data;
 
-    // Save the message to the database
-    const message = new Message({ sender, content });
-    await message.save();
+    try {
+      // Save the message to the database
+      const message = new Message({ sender, content, chatRoom });
+      await message.save();
 
-    // Broadcast the message to all connected clients
-    io.emit('receiveMessage', message);
+      // Broadcast the message to all users in the chat room
+      io.to(chatRoom).emit('receiveMessage', message);
+    } catch (err) {
+      console.error('Error saving message:', err);
+    }
   });
 
   // Handle user disconnect
